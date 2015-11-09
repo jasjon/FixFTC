@@ -1,2 +1,9 @@
 ﻿EY Credential List Item
 EY KNOWLEDGE LIST ITEM
+EY Tax Agreement
+EY Tax Email
+EY Tax Agreements
+EY Tax Emails
+EY Tax Workpaper
+EY Tax Workpapers
+GCR Principle

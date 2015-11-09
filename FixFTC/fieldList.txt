@@ -17,8 +17,5 @@ l6cbd74e74df415092bc9107d5d50e16
 o964a74dd2024aeb8ec90c91e1a475f7
 i8df2ea0bc0f4b7ab24c6550d2089acf
 o3f6243230d04297868ccd8373e0d68d
-ClientNumber
-ClientName
 PrimaryAudience
 PrimaryLanguageOfContent
-EngagementNumber

@@ -1,4 +1,5 @@
 ﻿using Microsoft.SharePoint.Client;
+using Microsoft.SharePoint.Client.Taxonomy;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -124,6 +125,13 @@ namespace FixFTC
                         AddJobOutputToReport(jobOutput, ref scReport);
                     }
 
+                    if (_resetValues.ProcessRemoveFieldsFromLists)
+                    {
+                        scReport.AddEntry(String.Format("*** Removing {0} content types", ResetValues.ContentTypesToRemove.Count));
+                        jobOutput = RemoveFieldsFromLists();
+                        AddJobOutputToReport(jobOutput, ref scReport);
+                    }
+
                     if (_resetValues.ProcessRefreshCTFlag)
                     {
                         scReport.AddEntry("*** Setting the 'Refresh Content Types' Flag");
@@ -134,6 +142,67 @@ namespace FixFTC
                 outputReport += scReport.Output() + Environment.NewLine;
                 outputReport += "-----------------------------------------------------------" + Environment.NewLine + Environment.NewLine;
             }
+        }
+
+        private Dictionary<string, string> RemoveFieldsFromLists()
+        {
+            Dictionary<string, string> jobOutput = new Dictionary<string, string>();
+
+            var siteLists = _ctx.Site.RootWeb.Lists;
+            _ctx.Load(siteLists);
+            _ctx.ExecuteQuery();
+
+            List<Guid> fieldIdsToRemove = new List<Guid>();
+
+            foreach (var sl in siteLists)
+            {
+                string fieldListForReport = String.Empty;
+                var listFields = sl.Fields;
+                _ctx.Load(listFields);
+                _ctx.ExecuteQuery();
+                fieldIdsToRemove = new List<Guid>();
+                foreach (var fld in listFields)
+                {
+                    //check that it is DIFFERENT to the CTH version and is contained in the remove list
+                    if (_resetValues.FieldNamesToRemove.Contains(fld.InternalName.ToString())
+                        && ! _cthCols.Values.Contains(fld.Id))
+                    {
+                        //now, is there a duplicate in this list (from an existing CT) ?
+                        int fldCount = 0;
+                        foreach(var fldDuplicate in listFields)
+                        {
+                            if (fldDuplicate.StaticName == fld.InternalName)
+                            { fldCount++;  }
+                        }
+
+                        if (fldCount == 2)
+                        {
+                            //there is a match and it is a duplicate - remove the one that is not from the CTH.
+                            fieldIdsToRemove.Add(fld.Id);
+                            fieldListForReport += String.Format("Removed field '{0}{1}", fld.StaticName, Environment.NewLine);
+                        }
+                    }
+                }
+
+                foreach(Guid fldID in fieldIdsToRemove)
+                {
+                    var fld = sl.Fields.GetById(fldID);
+                    fld.Hidden = false;
+                    fld.Update();
+                    fld.DeleteObject();
+                }
+
+                if (fieldIdsToRemove.Count > 0)
+                {
+                    _ctx.ExecuteQuery();
+                    jobOutput.Add(String.Format("Processed '{0}' library/list", sl.Title), fieldListForReport);
+                }
+                    
+                
+            }
+
+            return jobOutput;
+
         }
 
         /// <summary>
@@ -149,6 +218,7 @@ namespace FixFTC
             if (rootWebProperties["metadatatimestamp"].ToString() != String.Empty)
             {
                 rootWebProperties["metadatatimestamp"] = String.Empty;
+                _ctx.Site.RootWeb.Update();
                 _ctx.ExecuteQuery();
             }
         }
@@ -334,6 +404,7 @@ namespace FixFTC
                         if (linkToRemove != null)
                         {
                             //OpenCTHierarchy(contentType.Id.StringValue);
+                            contentType.ReadOnly = false;
                             linkToRemove.DeleteObject();
                             contentType.Update(false);
                             _ctx.ExecuteQuery();

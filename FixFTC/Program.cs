@@ -86,6 +86,7 @@ namespace FixFTC
             srv.ProcessCTHide = Boolean.Parse(ConfigurationManager.AppSettings["processCTHide"]);
             srv.ProcessCTRemove = Boolean.Parse(ConfigurationManager.AppSettings["processCTRemove"]);
             srv.ProcessRefreshCTFlag = Boolean.Parse(ConfigurationManager.AppSettings["processRefreshCTFlag"]);
+            srv.ProcessRemoveFieldsFromLists = Boolean.Parse(ConfigurationManager.AppSettings["processFieldRemovalFromLists"]);
             
 
             srv.FieldNamesToRemove = GetFileContents(ConfigurationManager.AppSettings["fieldListFile"]);
@@ -94,7 +95,14 @@ namespace FixFTC
             srv.SiteCollections = GetFileContents(ConfigurationManager.AppSettings["siteCollectionURLFile"]);
 
             srv.ContentTypeHubURL = ConfigurationManager.AppSettings["configHubURL"];
-            return srv;
+            if (!srv.ValidSettings())
+            { 
+                throw new Exception(srv.FailReason); 
+            }
+            else
+            {
+                return srv;
+            }
         }
 
         /// <summary>
